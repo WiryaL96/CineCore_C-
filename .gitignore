@@ -1,0 +1,14 @@
+# .NET build output
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Archives yang gak perlu di-track
+*.zip
+
+# Claude local settings
+.claude/settings.local.json
