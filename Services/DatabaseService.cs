@@ -47,7 +47,8 @@ namespace CineCore.Services
                 Id = reader.GetInt32(0),
                 FullName = reader.GetString(1),
                 Email = reader.GetString(2),
-                CreatedAt = reader.GetDateTime(3)
+                CreatedAt = reader.GetDateTime(3),
+                IsAdmin = AuthService.IsAdminEmail(reader.GetString(2))
             };
         }
 
@@ -94,7 +95,7 @@ namespace CineCore.Services
 
             while (await reader.ReadAsync())
             {
-                list.Add(new Movie
+                var movie = new Movie
                 {
                     Id = Convert.ToInt32(reader["id"]),
                     Title = reader["title"].ToString() ?? "",
@@ -106,9 +107,13 @@ namespace CineCore.Services
                     TrailerUrl = GetString(reader, columns, "trailer_url"),
                     IsShowing = GetBool(reader, columns, "is_showing", defaultValue: true),
                     ReleaseDate = GetDateTime(reader, columns, "release_date"),
+                    EndDate = GetDateTimeNullable(reader, columns, "end_date"),
+                    Format = GetString(reader, columns, "format"),
                     Description = GetString(reader, columns, "description"),
                     Rating = GetDouble(reader, columns, "rating")
-                });
+                };
+                if (string.IsNullOrWhiteSpace(movie.Format)) movie.Format = "2D";
+                list.Add(movie);
             }
             return list;
         }
@@ -125,6 +130,9 @@ namespace CineCore.Services
 
         private static double GetDouble(IDataRecord reader, HashSet<string> columns, string name, double defaultValue = 0) =>
             Has(columns, name, reader) ? Convert.ToDouble(reader[name]) : defaultValue;
+
+        private static DateTime? GetDateTimeNullable(IDataRecord reader, HashSet<string> columns, string name) =>
+            Has(columns, name, reader) ? Convert.ToDateTime(reader[name]) : (DateTime?)null;
 
         private static bool GetBool(IDataRecord reader, HashSet<string> columns, string name, bool defaultValue = false) =>
             Has(columns, name, reader) ? Convert.ToBoolean(reader[name]) : defaultValue;
@@ -160,6 +168,9 @@ namespace CineCore.Services
                     // Gabung type biar bioskop yang senama tetap kebedain
                     Name = string.IsNullOrEmpty(type) ? name : $"{name} ({type})",
                     Location = GetString(reader, columns, "address"),
+                    // Simpan type & city terpisah buat filter tab & tampil kota di kartu bioskop
+                    Type = type,
+                    City = GetString(reader, columns, "city"),
                     // total_rows/total_columns nggak ada di schema Laravel → pakai default (5 baris x 8 kolom)
                     TotalRows = GetInt(reader, columns, "total_rows", 5),
                     TotalColumns = GetInt(reader, columns, "total_columns", 8)
@@ -406,11 +417,11 @@ namespace CineCore.Services
         // ──────────────────────────────────────────────────────────────────────
         // ADMIN: MOVIES CRUD
         // ──────────────────────────────────────────────────────────────────────
-        public async Task<bool> AddMovieAsync(Movie movie)
+        public async Task<int> AddMovieAsync(Movie movie)
         {
             await using var conn = GetConnection();
             await conn.OpenAsync();
-            const string sql = @"INSERT INTO movies (title, genre, duration_minutes, poster_path, trailer_url, is_showing, release_date, created_at, updated_at) 
+            const string sql = @"INSERT INTO movies (title, genre, duration_minutes, poster_path, trailer_url, is_showing, release_date, created_at, updated_at)
                                  VALUES (@Title, @Genre, @Duration, @Poster, @Trailer, @IsShowing, @ReleaseDate, NOW(), NOW())";
             await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@Title", movie.Title);
@@ -420,15 +431,16 @@ namespace CineCore.Services
             cmd.Parameters.AddWithValue("@Trailer", movie.TrailerUrl);
             cmd.Parameters.AddWithValue("@IsShowing", movie.IsShowing);
             cmd.Parameters.AddWithValue("@ReleaseDate", movie.ReleaseDate);
-            return await cmd.ExecuteNonQueryAsync() > 0;
+            await cmd.ExecuteNonQueryAsync();
+            return (int)cmd.LastInsertedId;
         }
 
         public async Task<bool> UpdateMovieAsync(Movie movie)
         {
             await using var conn = GetConnection();
             await conn.OpenAsync();
-            const string sql = @"UPDATE movies SET title=@Title, genre=@Genre, duration_minutes=@Duration, 
-                                 poster_path=@Poster, trailer_url=@Trailer, is_showing=@IsShowing, 
+            const string sql = @"UPDATE movies SET title=@Title, genre=@Genre, duration_minutes=@Duration,
+                                 poster_path=@Poster, trailer_url=@Trailer, is_showing=@IsShowing,
                                  release_date=@ReleaseDate, updated_at=NOW() WHERE id=@Id";
             await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@Id", movie.Id);
@@ -503,6 +515,144 @@ namespace CineCore.Services
                 });
             }
             return list;
+        }
+
+        // ──────────────────────────────────────────────────────────────────────
+        // ADMIN: BULK SHOWTIME GENERATOR
+        // ──────────────────────────────────────────────────────────────────────
+        public async Task<int> AddShowtimesBulkAsync(
+            IEnumerable<(int MovieId, int CinemaId, DateTime StartTime, decimal Price)> items)
+        {
+            var list = items.ToList();
+            if (list.Count == 0) return 0;
+
+            await using var conn = GetConnection();
+            await conn.OpenAsync();
+            await using var tx = await conn.BeginTransactionAsync();
+            int inserted = 0;
+            try
+            {
+                const string sql = @"INSERT INTO showtimes (movie_id, cinema_id, start_time, price, created_at, updated_at)
+                                     VALUES (@MovieId, @CinemaId, @StartTime, @Price, NOW(), NOW())";
+                foreach (var it in list)
+                {
+                    await using var cmd = new MySqlCommand(sql, conn, tx);
+                    cmd.Parameters.AddWithValue("@MovieId", it.MovieId);
+                    cmd.Parameters.AddWithValue("@CinemaId", it.CinemaId);
+                    cmd.Parameters.AddWithValue("@StartTime", it.StartTime);
+                    cmd.Parameters.AddWithValue("@Price", it.Price);
+                    inserted += await cmd.ExecuteNonQueryAsync();
+                }
+                await tx.CommitAsync();
+                return inserted;
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw;
+            }
+        }
+
+        // ──────────────────────────────────────────────────────────────────────
+        // ADMIN: SALES & REPORT (semua agregat dihitung dari 1 query + 1 scalar)
+        // ──────────────────────────────────────────────────────────────────────
+        public async Task<SalesReport> GetSalesReportAsync()
+        {
+            await using var conn = GetConnection();
+            await conn.OpenAsync();
+
+            const string sql = @"
+                SELECT b.booking_reference, b.total_price, b.status, b.created_at,
+                       u.name AS customer, m.title AS movie, c.name AS cinema,
+                       bs.seats AS seats, bs.seat_count AS seat_count
+                FROM bookings b
+                JOIN showtimes s ON s.id = b.showtime_id
+                JOIN movies m ON m.id = s.movie_id
+                JOIN cinemas c ON c.id = s.cinema_id
+                JOIN users u ON u.id = b.user_id
+                LEFT JOIN (
+                    SELECT booking_id,
+                           GROUP_CONCAT(seat_number ORDER BY seat_number SEPARATOR ',') AS seats,
+                           COUNT(*) AS seat_count
+                    FROM booking_seats GROUP BY booking_id
+                ) bs ON bs.booking_id = b.id
+                ORDER BY b.created_at DESC";
+
+            var rows = new List<(decimal total, string status, DateTime created, string reference,
+                string customer, string movie, string cinema, string seats, int seatCount)>();
+
+            await using (var cmd = new MySqlCommand(sql, conn))
+            await using (var reader = await cmd.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    rows.Add((
+                        Convert.ToDecimal(reader["total_price"]),
+                        reader["status"]?.ToString() ?? "",
+                        Convert.ToDateTime(reader["created_at"]),
+                        reader["booking_reference"]?.ToString() ?? "",
+                        reader["customer"]?.ToString() ?? "",
+                        reader["movie"]?.ToString() ?? "",
+                        reader["cinema"]?.ToString() ?? "",
+                        reader["seats"] == DBNull.Value ? "" : reader["seats"]?.ToString() ?? "",
+                        reader["seat_count"] == DBNull.Value ? 0 : Convert.ToInt32(reader["seat_count"])
+                    ));
+                }
+            }
+
+            int activeMovies;
+            await using (var cmd2 = new MySqlCommand("SELECT COUNT(*) FROM movies WHERE is_showing = 1", conn))
+                activeMovies = Convert.ToInt32(await cmd2.ExecuteScalarAsync());
+
+            bool IsStatus(string s, string want) => s.Equals(want, StringComparison.OrdinalIgnoreCase);
+
+            var paid = rows.Where(r => IsStatus(r.status, "paid")).ToList();
+            var pending = rows.Where(r => IsStatus(r.status, "pending")).ToList();
+            var today = DateTime.Today;
+
+            var report = new SalesReport
+            {
+                TotalRevenue = paid.Sum(r => r.total),
+                TotalTickets = paid.Sum(r => r.seatCount),
+                TotalBookings = paid.Count,
+                AllBookings = rows.Count,
+                ActiveMovies = activeMovies,
+                RevenueToday = paid.Where(r => r.created.Date == today).Sum(r => r.total),
+                RevenueThisMonth = paid.Where(r => r.created.Year == today.Year && r.created.Month == today.Month).Sum(r => r.total),
+                PendingBookings = pending.Count,
+                PendingRevenue = pending.Sum(r => r.total),
+                CancelledBookings = rows.Count(r => IsStatus(r.status, "cancelled")),
+            };
+
+            report.AvgTicketPrice = report.TotalTickets > 0 ? Math.Round(report.TotalRevenue / report.TotalTickets) : 0;
+            report.AvgSeatsPerBooking = report.TotalBookings > 0 ? Math.Round((double)report.TotalTickets / report.TotalBookings, 1) : 0;
+            report.ConversionRate = rows.Count > 0 ? Math.Round((double)report.TotalBookings / rows.Count * 100, 1) : 0;
+
+            // DB asli nggak punya kolom cinemas.type → kelompokkan per NAMA bioskop.
+            report.RevenueByCinemaType = paid
+                .GroupBy(r => string.IsNullOrWhiteSpace(r.cinema) ? "Unknown" : r.cinema)
+                .Select(g => new CinemaTypeRevenue { Type = g.Key, Revenue = g.Sum(x => x.total), Bookings = g.Count() })
+                .OrderByDescending(x => x.Revenue).ToList();
+
+            report.TopMovies = paid
+                .GroupBy(r => r.movie)
+                .Select(g => new MovieRevenue { Title = g.Key, Revenue = g.Sum(x => x.total) })
+                .OrderByDescending(x => x.Revenue).Take(5).ToList();
+
+            report.RecentTransactions = paid
+                .Select(r => new ReportTransaction
+                {
+                    Date = r.created,
+                    Reference = r.reference,
+                    Customer = r.customer,
+                    Movie = r.movie,
+                    Cinema = r.cinema,
+                    Seats = string.IsNullOrEmpty(r.seats) ? new List<string>() : r.seats.Split(',').ToList(),
+                    Amount = r.total,
+                    Status = r.status
+                }).ToList();
+
+            return report;
         }
 
     }

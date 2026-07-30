@@ -16,5 +16,7 @@ namespace CineCore.Models
         // ── BARU DITAMBAHKAN BIAR SINKRON SAMA DATABASE LARAVEL ──
         public bool IsShowing { get; set; }
         public DateTime ReleaseDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string Format { get; set; } = "2D"; // "2D", "IMAX", "3D"
     }
 }

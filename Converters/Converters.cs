@@ -27,8 +27,12 @@ namespace CineCore.Converters
             var url = (v as string)?.Trim();
             if (string.IsNullOrEmpty(url)) return null;
 
-            bool isAbsolute = url.StartsWith("http://") || url.StartsWith("https://");
-            if (!isAbsolute)
+            bool isHttp = url.StartsWith("http://") || url.StartsWith("https://");
+            // File lokal (dipilih admin lewat "Choose File"): path absolut Windows atau URI file:
+            bool isFile = url.StartsWith("file:", StringComparison.OrdinalIgnoreCase)
+                          || System.IO.Path.IsPathRooted(url);
+
+            if (!isHttp && !isFile)
             {
                 // path relatif → butuh base URL Laravel; kalau gak diset, biarin placeholder
                 if (string.IsNullOrEmpty(LaravelBaseUrl)) return null;
@@ -37,9 +41,14 @@ namespace CineCore.Converters
 
             try
             {
+                if (isFile && !url.StartsWith("file:", StringComparison.OrdinalIgnoreCase))
+                    url = new Uri(url).AbsoluteUri; // "C:\poster.jpg" -> "file:///C:/poster.jpg"
+
                 var bmp = new BitmapImage();
                 bmp.BeginInit();
-                bmp.CacheOption = BitmapCacheOption.OnDemand;          // download async
+                // File lokal di-cache OnLoad (biar file gak kekunci & preview langsung muncul),
+                // URL http tetap OnDemand biar gak nge-freeze UI.
+                bmp.CacheOption = isFile ? BitmapCacheOption.OnLoad : BitmapCacheOption.OnDemand;
                 bmp.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
                 bmp.UriSource = new Uri(url, UriKind.RelativeOrAbsolute);
                 bmp.EndInit();
@@ -110,5 +119,17 @@ namespace CineCore.Converters
             => v?.ToString() == p?.ToString();
         public object ConvertBack(object v, Type t, object p, CultureInfo c)
             => v is true ? p : Binding.DoNothing;
+    }
+
+    // Format DateTime pakai pola dari ConverterParameter, lalu UPPERCASE.
+    // Contoh: ConverterParameter="ddd" -> "THU", "MMM" -> "JUL".
+    [ValueConversion(typeof(DateTime), typeof(string))]
+    public class DateUpperConverter : IValueConverter
+    {
+        public object Convert(object v, Type t, object p, CultureInfo c)
+            => v is DateTime dt && p is string fmt
+                ? dt.ToString(fmt, CultureInfo.InvariantCulture).ToUpperInvariant()
+                : string.Empty;
+        public object ConvertBack(object v, Type t, object p, CultureInfo c) => Binding.DoNothing;
     }
 }

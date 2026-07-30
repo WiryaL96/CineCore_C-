@@ -11,20 +11,29 @@ namespace CineCore.ViewModels
     {
         private readonly IDatabaseService _db = ServiceLocator.Get<IDatabaseService>();
 
-        public ObservableCollection<Booking> Bookings { get; } = new();
+        public ObservableCollection<TicketItemViewModel> Tickets { get; } = new();
 
         private bool _isBusy;
         public bool IsBusy { get => _isBusy; set => SetProperty(ref _isBusy, value); }
 
         private bool _isEmpty;
-        public bool IsEmpty { get => _isEmpty; set => SetProperty(ref _isEmpty, value); }
+        public bool IsEmpty
+        {
+            get => _isEmpty;
+            set { if (SetProperty(ref _isEmpty, value)) OnPropertyChanged(nameof(HasTickets)); }
+        }
+        public bool HasTickets => !_isEmpty;
 
         public RelayCommand GoBackCommand { get; }
+        public RelayCommand BrowseMoviesCommand { get; }
+        public RelayCommand OpenBookingCommand { get; }
 
         public BookingHistoryViewModel()
         {
-            GoBackCommand = new RelayCommand(() =>
-                NavigationService.Instance.NavigateTo(AppPage.Dashboard));
+            GoBackCommand = new RelayCommand(() => NavigationService.Instance.NavigateTo(AppPage.Dashboard));
+            BrowseMoviesCommand = new RelayCommand(() => NavigationService.Instance.NavigateTo(AppPage.Dashboard));
+            OpenBookingCommand = new RelayCommand(p => OpenBooking(p as TicketItemViewModel), p => p is TicketItemViewModel);
+
             _ = LoadHistoryAsync();
         }
 
@@ -38,10 +47,10 @@ namespace CineCore.ViewModels
 
                 System.Windows.Application.Current.Dispatcher.Invoke(() =>
                 {
-                    Bookings.Clear();
+                    Tickets.Clear();
                     foreach (var b in bookings)
-                        Bookings.Add(b);
-                    IsEmpty = Bookings.Count == 0;
+                        Tickets.Add(new TicketItemViewModel(b));
+                    IsEmpty = Tickets.Count == 0;
                 });
             }
             catch (System.Exception ex)
@@ -51,6 +60,27 @@ namespace CineCore.ViewModels
             finally
             {
                 IsBusy = false;
+            }
+        }
+
+        // Tombol aksi per kartu: "paid" -> lihat e-ticket, "pending" -> lanjut bayar.
+        private void OpenBooking(TicketItemViewModel? item)
+        {
+            if (item?.Booking is not { Movie: { } movie, Showtime: { } showtime } booking) return;
+
+            var cinema = new Cinema { Name = showtime.CinemaName };
+            var seats = booking.Seats.Select(s => s.SeatLabel).ToList();
+
+            if (item.IsPaid)
+            {
+                NavigationService.Instance.NavigateTo(AppPage.BookingConfirmation,
+                    new BookingConfirmationParams(movie, showtime, cinema, seats,
+                        booking.TotalAmount, booking.PaymentMethod, booking.BookingCode));
+            }
+            else if (item.IsPending)
+            {
+                NavigationService.Instance.NavigateTo(AppPage.Payment,
+                    new PaymentParams(movie, showtime, cinema, seats, booking.TotalAmount));
             }
         }
     }

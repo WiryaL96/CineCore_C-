@@ -1,207 +1,442 @@
 <UserControl x:Class="CineCore.Views.MovieDetailView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             Background="#0B0F19" Foreground="White">
+             Background="#0A0B10" Foreground="White" FontFamily="Segoe UI">
+
+    <UserControl.Resources>
+
+        <!-- Tombol jam tayang (showtime) -->
+        <Style x:Key="ShowtimeButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#CBD5E1"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="MinWidth" Value="80"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="Margin" Value="0,0,12,12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#1A3B82F6"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#3B82F6"/>
+                                <Setter Property="Foreground" Value="#60A5FA"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Pill/badge info film (genre, durasi) -->
+        <Style x:Key="MetaPill" TargetType="Border">
+            <Setter Property="Background" Value="#CC1E293B"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="999"/>
+            <Setter Property="Padding" Value="12,4"/>
+            <Setter Property="Margin" Value="0,0,10,10"/>
+        </Style>
+
+        <!-- Item container tanggal (date pill) -->
+        <Style x:Key="DatePill" TargetType="ListBoxItem">
+            <Setter Property="Background" Value="#0F172A"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="BorderBrush" Value="#80334155"/>
+            <Setter Property="MinWidth" Value="80"/>
+            <Setter Property="Margin" Value="0,0,12,0"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                                CornerRadius="12" Padding="{TemplateBinding Padding}"
+                                RenderTransformOrigin="0.5,0.5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#475569"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter TargetName="bd" Property="Background" Value="#2563EB"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#3B82F6"/>
+                                <Setter TargetName="bd" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="1.05" ScaleY="1.05"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="bd" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#3B82F6" BlurRadius="18" ShadowDepth="0" Opacity="0.5"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Item container tab filter type bioskop -->
+        <Style x:Key="TypeTab" TargetType="ListBoxItem">
+            <Setter Property="Background" Value="#0F172A"/>
+            <Setter Property="Foreground" Value="#CBD5E1"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
+            <Setter Property="Margin" Value="0,0,12,0"/>
+            <Setter Property="Padding" Value="18,9"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                                CornerRadius="10" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#64748B"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter TargetName="bd" Property="Background" Value="#2563EB"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#2563EB"/>
+                                <Setter TargetName="bd" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#2563EB" BlurRadius="18" ShadowDepth="0" Opacity="0.5"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <Grid Margin="40">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+        <StackPanel MaxWidth="1200" HorizontalAlignment="Center" Margin="40,32,40,48">
 
-            <Button Grid.Row="0" Command="{Binding GoBackCommand}" Content="← Back to Movies" Background="Transparent" Foreground="#3B82F6" BorderThickness="0" HorizontalAlignment="Left" FontSize="14" FontWeight="SemiBold" Cursor="Hand" Margin="0,0,0,20"/>
+            <!-- Back link -->
+            <Button Command="{Binding GoBackCommand}" Content="← Back to Movies"
+                    Background="Transparent" Foreground="#3B82F6" BorderThickness="0"
+                    HorizontalAlignment="Left" FontSize="14" FontWeight="SemiBold"
+                    Cursor="Hand" Margin="0,0,0,20"/>
 
-            <Border Grid.Row="1" Background="#111827" CornerRadius="12" Padding="20" Margin="0,0,0,40">
+            <!-- ══════════ SECTION 1: HERO CARD ══════════ -->
+            <Border CornerRadius="16" Padding="32" ClipToBounds="True"
+                    BorderBrush="#1E293B" BorderThickness="1" Margin="0,0,0,40">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#0F172A" Offset="0"/>
+                        <GradientStop Color="#020617" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
                 <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Border CornerRadius="8" ClipToBounds="True" Width="180" Height="250" Margin="0,0,30,0">
-                        <Grid>
-                            <Border Background="#1A1C2A">
-                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                    <TextBlock Text="🎬" FontSize="36" HorizontalAlignment="Center" Opacity="0.5"/>
-                                    <TextBlock Text="No Poster" Foreground="#5A6080" FontSize="12" HorizontalAlignment="Center" Margin="0,6,0,0"/>
-                                </StackPanel>
+                    <!-- Decorative glow circles -->
+                    <Ellipse Width="288" Height="288" HorizontalAlignment="Left" VerticalAlignment="Top"
+                             Margin="-90,-90,0,0" Opacity="0.10" Fill="#2563EB">
+                        <Ellipse.Effect><BlurEffect Radius="48"/></Ellipse.Effect>
+                    </Ellipse>
+                    <Ellipse Width="288" Height="288" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                             Margin="0,0,-90,-90" Opacity="0.10" Fill="#9333EA">
+                        <Ellipse.Effect><BlurEffect Radius="48"/></Ellipse.Effect>
+                    </Ellipse>
+
+                    <!-- Content -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Poster -->
+                        <Border Grid.Column="0" Width="256" Height="380" CornerRadius="12"
+                                ClipToBounds="True" Margin="0,0,32,0" VerticalAlignment="Top"
+                                BorderBrush="#80334155" BorderThickness="1">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#1E3A8A" BlurRadius="40" ShadowDepth="0" Opacity="0.35"/>
+                            </Border.Effect>
+                            <Grid>
+                                <Border Background="#1A1C2A">
+                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                        <TextBlock Text="🎬" FontSize="48" HorizontalAlignment="Center" Opacity="0.4"/>
+                                        <TextBlock Text="No Poster" Foreground="#64748B" FontSize="12"
+                                                   HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Image Source="{Binding Movie.PosterUrl, Converter={StaticResource PosterUrl}}"
+                                       Stretch="UniformToFill"/>
+                                <!-- inset ring white/10 -->
+                                <Border BorderBrush="#1AFFFFFF" BorderThickness="1" CornerRadius="12"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Details -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Top">
+
+                            <!-- Now Showing badge -->
+                            <Border HorizontalAlignment="Left" Background="#332563EB"
+                                    BorderBrush="#4D3B82F6" BorderThickness="1" CornerRadius="999"
+                                    Padding="12,4" Margin="0,0,0,12">
+                                <TextBlock Text="NOW SHOWING" Foreground="#60A5FA" FontSize="11" FontWeight="Bold"/>
                             </Border>
-                            <Image Source="{Binding Movie.PosterUrl, Converter={StaticResource PosterUrl}}" Stretch="UniformToFill"/>
-                        </Grid>
-                    </Border>
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding Movie.Title}" FontSize="32" FontWeight="Bold" Margin="0,0,0,10"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                            <TextBlock Text="{Binding Movie.Genre}" Foreground="#9CA3AF" FontSize="14"/>
-                            <TextBlock Text="  •  " Foreground="#4B5563" FontSize="14"/>
-                            <TextBlock Text="{Binding Movie.DurationMinutes, StringFormat={}{0} min}" Foreground="#9CA3AF" FontSize="14"/>
-                            <TextBlock Text="  •  " Foreground="#4B5563" FontSize="14"/>
-                            <TextBlock Text="2D" Foreground="#3B82F6" FontSize="14" FontWeight="SemiBold"/>
+
+                            <!-- Title -->
+                            <TextBlock Text="{Binding TitleUpper}" FontSize="34" FontWeight="Bold"
+                                       Foreground="White" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+                            <!-- Meta info pills -->
+                            <WrapPanel Margin="0,0,0,14">
+                                <Border Style="{StaticResource MetaPill}">
+                                    <TextBlock Text="{Binding Movie.Genre}" Foreground="#94A3B8" FontSize="14"/>
+                                </Border>
+                                <Border Style="{StaticResource MetaPill}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="M12,3 A9,9 0 1 0 12.001,3 Z M12,7 L12,12 L15.5,13.5"
+                                              Stroke="#94A3B8" StrokeThickness="2" Fill="Transparent"
+                                              Width="14" Height="14" Stretch="Uniform"
+                                              VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <TextBlock Text="{Binding Movie.DurationMinutes, StringFormat={}{0} min}"
+                                                   Foreground="#94A3B8" FontSize="14" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <!-- Format badge (blue) -->
+                                <Border Background="#332563EB" BorderBrush="#4D3B82F6" BorderThickness="1"
+                                        CornerRadius="999" Padding="12,4" Margin="0,0,10,10">
+                                    <TextBlock Text="2D" Foreground="#60A5FA" FontSize="14" FontWeight="SemiBold"/>
+                                </Border>
+                            </WrapPanel>
+
+                            <!-- Description -->
+                            <TextBlock Text="{Binding Movie.Description}" Foreground="#94A3B8" FontSize="14"
+                                       TextWrapping="Wrap" MaxWidth="576" HorizontalAlignment="Left"
+                                       LineHeight="22" Margin="0,0,0,24"
+                                       Visibility="{Binding HasDescription, Converter={StaticResource BoolToVisibility}}"/>
+
+                            <!-- Watch Trailer -->
+                            <Button Command="{Binding WatchTrailerCommand}" HorizontalAlignment="Left"
+                                    Cursor="Hand" Foreground="White" FontSize="14" FontWeight="SemiBold"
+                                    Visibility="{Binding HasTrailer, Converter={StaticResource BoolToVisibility}}">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="bd" Background="#2563EB" CornerRadius="12" Padding="24,12">
+                                            <Border.Effect>
+                                                <DropShadowEffect Color="#2563EB" BlurRadius="20" ShadowDepth="0" Opacity="0.4"/>
+                                            </Border.Effect>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Path Data="M8,5 L19,12 L8,19 Z" Fill="White" Width="14" Height="14"
+                                                      Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <TextBlock Text="Watch Trailer" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="bd" Property="Background" Value="#3B82F6"/>
+                                            </Trigger>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
                         </StackPanel>
-                        <Button Command="{Binding WatchTrailerCommand}" Content="▶ Watch Trailer" Background="#3B82F6" Foreground="White" BorderThickness="0" Width="140" Height="40" HorizontalAlignment="Left" Cursor="Hand">
-                            <Button.Resources>
-                                <Style TargetType="Border">
-                                    <Setter Property="CornerRadius" Value="6"/>
-                                </Style>
-                            </Button.Resources>
-                        </Button>
-                    </StackPanel>
+                    </Grid>
                 </Grid>
             </Border>
 
-            <StackPanel Grid.Row="2" Margin="0,0,0,30">
-                <TextBlock Text="Select Date" FontSize="16" FontWeight="SemiBold" Foreground="#9CA3AF" Margin="0,0,0,15"/>
-                <ListBox ItemsSource="{Binding AvailableDates}" SelectedItem="{Binding SelectedDate}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                    <ListBox.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal"/>
-                        </ItemsPanelTemplate>
-                    </ListBox.ItemsPanel>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Margin="0,5">
-                                <TextBlock Text="{Binding StringFormat={}{0:ddd}}" FontSize="12" HorizontalAlignment="Center" Margin="0,0,0,2"/>
-                                <TextBlock Text="{Binding StringFormat={}{0:dd}}" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
-                                <TextBlock Text="{Binding StringFormat={}{0:MMM}}" FontSize="12" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem">
-                            <Setter Property="Background" Value="White"/>
-                            <Setter Property="Foreground" Value="Black"/>
-                            <Setter Property="Margin" Value="0,0,10,0"/>
-                            <Setter Property="Padding" Value="15,10"/>
-                            <Setter Property="Cursor" Value="Hand"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="ListBoxItem">
-                                        <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                            <Style.Triggers>
-                                <Trigger Property="IsSelected" Value="True">
-                                    <Setter Property="Background" Value="#3B82F6"/>
-                                    <Setter Property="Foreground" Value="White"/>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </ListBox.ItemContainerStyle>
-                </ListBox>
-            </StackPanel>
+            <!-- ══════════ SECTIONS (only when there are showtimes) ══════════ -->
+            <StackPanel Visibility="{Binding HasShowtimes, Converter={StaticResource BoolToVisibility}}">
 
-            <StackPanel Grid.Row="3" Margin="0,0,0,20">
-                <TextBlock Text="Select Cinema" FontSize="16" FontWeight="SemiBold" Foreground="#9CA3AF" Margin="0,0,0,15"/>
-                <ListBox ItemsSource="{Binding Cinemas}" SelectedItem="{Binding SelectedCinema}" Background="Transparent" BorderThickness="0">
-                    <ListBox.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal"/>
-                        </ItemsPanelTemplate>
-                    </ListBox.ItemsPanel>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Name}"/>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem">
-                            <Setter Property="Background" Value="White"/>
-                            <Setter Property="Foreground" Value="Black"/>
-                            <Setter Property="Margin" Value="0,0,10,10"/>
-                            <Setter Property="Padding" Value="20,10"/>
-                            <Setter Property="Cursor" Value="Hand"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="ListBoxItem">
-                                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
-                                            <ContentPresenter HorizontalAlignment="Center"/>
-                                        </Border>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                            <Style.Triggers>
-                                <Trigger Property="IsSelected" Value="True">
-                                    <Setter Property="Background" Value="#3B82F6"/>
-                                    <Setter Property="Foreground" Value="White"/>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </ListBox.ItemContainerStyle>
-                </ListBox>
-            </StackPanel>
+                <!-- SECTION 2: DATE SELECTOR -->
+                <StackPanel Margin="0,0,0,40">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <Path Data="M4,5 H20 V20 H4 Z M4,9 H20 M8,3 V6 M16,3 V6"
+                              Stroke="#3B82F6" StrokeThickness="2" Fill="Transparent"
+                              Width="20" Height="20" Stretch="Uniform" VerticalAlignment="Center"/>
+                        <TextBlock Text="Select Date" FontSize="18" FontWeight="Bold" Foreground="White"
+                                   Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
 
-            <Border Grid.Row="4" Background="White" CornerRadius="8" Padding="25">
-                <StackPanel>
-                    <TextBlock Text="Available Showtimes" FontSize="14" FontWeight="SemiBold" Foreground="#4B5563" Margin="0,0,0,15"/>
-
-                    <TextBlock Text="Oops! Jadwal kosong / Film udah turun layar bang." Foreground="#EF4444" Margin="0,10,0,20" FontWeight="SemiBold">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Showtimes.Count}" Value="0">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-
-                    <ListBox ItemsSource="{Binding Showtimes}" SelectedItem="{Binding SelectedShowtime}" Background="Transparent" BorderThickness="0" Margin="0,0,0,20">
+                    <ListBox ItemsSource="{Binding AvailableDates}" SelectedItem="{Binding SelectedDate}"
+                             Background="Transparent" BorderThickness="0"
+                             ItemContainerStyle="{StaticResource DatePill}"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                             ScrollViewer.VerticalScrollBarVisibility="Disabled">
                         <ListBox.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal"/>
+                                <StackPanel Orientation="Horizontal"/>
                             </ItemsPanelTemplate>
                         </ListBox.ItemsPanel>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding TimeFormatted}"/>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Converter={StaticResource DateUpper}, ConverterParameter=ddd}"
+                                               FontSize="12" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding StringFormat={}{0:dd}}" FontSize="20" FontWeight="Bold"
+                                               HorizontalAlignment="Center" Margin="0,2"/>
+                                    <TextBlock Text="{Binding Converter={StaticResource DateUpper}, ConverterParameter=MMM}"
+                                               FontSize="12" HorizontalAlignment="Center"/>
+                                </StackPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
-                        <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
-                                <Setter Property="Background" Value="#F3F4F6"/>
-                                <Setter Property="Foreground" Value="#4B5563"/>
-                                <Setter Property="Margin" Value="0,0,10,10"/>
-                                <Setter Property="Width" Value="100"/>
-                                <Setter Property="Padding" Value="0,12"/>
-                                <Setter Property="Cursor" Value="Hand"/>
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="ListBoxItem">
-                                            <Border Background="{TemplateBinding Background}" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="6" Padding="{TemplateBinding Padding}">
-                                                <ContentPresenter HorizontalAlignment="Center"/>
-                                            </Border>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                                <Style.Triggers>
-                                    <Trigger Property="IsSelected" Value="True">
-                                        <Setter Property="Background" Value="#3B82F6"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                        <Setter Property="BorderThickness" Value="0"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </ListBox.ItemContainerStyle>
                     </ListBox>
+                </StackPanel>
 
-                    <Button Content="Select Seats" Command="{Binding SelectSeatsCommand}" Background="#3B82F6" Foreground="White" Height="45" FontSize="16" FontWeight="Bold" Cursor="Hand">
-                        <Button.Resources>
-                            <Style TargetType="Border">
-                                <Setter Property="CornerRadius" Value="6"/>
-                            </Style>
-                        </Button.Resources>
-                    </Button>
+                <!-- SECTION 3: CINEMA FILTER + SHOWTIME LIST -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                    <Path Data="M4,4 H20 V20 H4 Z M4,9 H20 M4,15 H20 M9,4 V20 M15,4 V20"
+                          Stroke="#3B82F6" StrokeThickness="2" Fill="Transparent"
+                          Width="20" Height="20" Stretch="Uniform" VerticalAlignment="Center"/>
+                    <TextBlock Text="Select Cinema &amp; Showtime" FontSize="18" FontWeight="Bold"
+                               Foreground="White" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Cinema type filter tabs -->
+                <ListBox ItemsSource="{Binding CinemaTypes}" SelectedItem="{Binding SelectedType}"
+                         Background="Transparent" BorderThickness="0" Margin="0,0,0,24"
+                         ItemContainerStyle="{StaticResource TypeTab}">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- Cinema cards -->
+                <ItemsControl ItemsSource="{Binding CinemaGroups}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border CornerRadius="16" BorderBrush="#1E293B" BorderThickness="1"
+                                    Padding="24" Margin="0,0,0,16" Opacity="0">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                        <GradientStop Color="#0F172A" Offset="0"/>
+                                        <GradientStop Color="#800F172A" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                                <Border.RenderTransform>
+                                    <TranslateTransform Y="12"/>
+                                </Border.RenderTransform>
+                                <Border.Triggers>
+                                    <EventTrigger RoutedEvent="Border.Loaded">
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                 To="1" Duration="0:0:0.3"/>
+                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                                                 To="0" Duration="0:0:0.3">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <CubicEase EasingMode="EaseOut"/>
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </Border.Triggers>
+
+                                <StackPanel>
+                                    <!-- Top row: name/type/city + price -->
+                                    <Grid Margin="0,0,0,16">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding CinemaName}" FontSize="18"
+                                                           FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                                                <Border Background="#1E293B" BorderBrush="#334155" BorderThickness="1"
+                                                        CornerRadius="999" Padding="8,2" Margin="10,0,0,0"
+                                                        VerticalAlignment="Center"
+                                                        Visibility="{Binding HasType, Converter={StaticResource BoolToVisibility}}">
+                                                    <TextBlock Text="{Binding CinemaType}" Foreground="#94A3B8" FontSize="12"/>
+                                                </Border>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0"
+                                                        Visibility="{Binding HasCity, Converter={StaticResource BoolToVisibility}}">
+                                                <Path Data="M12,21 C12,21 5,14.5 5,9 A7,7 0 0 1 19,9 C19,14.5 12,21 12,21 Z M12,9 A2,2 0 1 0 12.01,9 Z"
+                                                      Stroke="#64748B" StrokeThickness="2" Fill="Transparent"
+                                                      Width="14" Height="14" Stretch="Uniform"
+                                                      VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                <TextBlock Text="{Binding City}" Foreground="#64748B" FontSize="14"
+                                                           VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <Border Grid.Column="1" Background="#1A3B82F6" BorderBrush="#333B82F6"
+                                                BorderThickness="1" CornerRadius="999" Padding="12,4"
+                                                VerticalAlignment="Top" HorizontalAlignment="Right">
+                                            <TextBlock Text="{Binding PriceFormatted}" Foreground="#60A5FA" FontSize="12"/>
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- Bottom row: showtime buttons -->
+                                    <ItemsControl ItemsSource="{Binding Showtimes}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Style="{StaticResource ShowtimeButton}"
+                                                        Content="{Binding TimeFormatted}"
+                                                        Command="{Binding DataContext.SelectShowtimeCommand,
+                                                                  RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- ══════════ EMPTY STATE ══════════ -->
+            <Border Background="#0F172A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="16"
+                    Padding="48" Margin="0,8,0,0"
+                    Visibility="{Binding NoShowtimes, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel HorizontalAlignment="Center">
+                    <Path Data="M4,4 H20 V20 H4 Z M4,9 H20 M4,15 H20 M9,4 V20 M15,4 V20"
+                          Stroke="#334155" StrokeThickness="1.5" Fill="Transparent"
+                          Width="64" Height="64" Stretch="Uniform" HorizontalAlignment="Center"/>
+                    <TextBlock Text="No showtimes available for this movie." Foreground="#64748B"
+                               FontSize="18" HorizontalAlignment="Center" Margin="0,20,0,0"/>
+                    <TextBlock Text="Check back later for updates." Foreground="#475569"
+                               FontSize="14" HorizontalAlignment="Center" Margin="0,6,0,0"/>
                 </StackPanel>
             </Border>
 
-        </Grid>
+        </StackPanel>
     </ScrollViewer>
 </UserControl>

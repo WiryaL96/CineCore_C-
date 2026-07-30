@@ -8,6 +8,8 @@
 
             <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
             <conv:PosterUrlConverter x:Key="PosterUrl" />
+            <conv:DateUpperConverter x:Key="DateUpper" />
+            <conv:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibility" />
 
             <Color x:Key="BgDeepColor">#0A0B14</Color>
             <Color x:Key="BgCardColor">#12141F</Color>

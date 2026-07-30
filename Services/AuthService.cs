@@ -4,6 +4,21 @@ namespace CineCore.Services
 {
     public static class AuthService
     {
+        // ── DAFTAR EMAIL ADMIN ──
+        // Akun dengan email di daftar ini yang boleh lihat & buka Admin Panel.
+        // (DB belum punya kolom is_admin, jadi peran admin ditentukan di sini.)
+        // Tambah / ganti email admin-mu di bawah:
+        private static readonly HashSet<string> AdminEmails = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "test@example.com",
+            // tambah email admin lain di sini kalau perlu:
+            // "admin2@contoh.com",
+        };
+
+        public static bool IsAdminEmail(string? email) =>
+            !string.IsNullOrWhiteSpace(email) && AdminEmails.Contains(email.Trim());
+
+
         // Fungsi ini dipanggil saat REGISTER untuk membuat Hash
         public static string HashPassword(string password)
         {

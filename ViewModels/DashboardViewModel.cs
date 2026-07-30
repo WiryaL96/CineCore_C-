@@ -33,6 +33,9 @@ namespace CineCore.ViewModels
         // Welcome text dari SessionService
         public string WelcomeText => $"Welcome, {SessionService.CurrentUser?.FullName ?? "User"}";
 
+        // Cuma admin yang boleh lihat tombol Admin Panel
+        public bool IsAdmin => SessionService.CurrentUser?.IsAdmin ?? false;
+
         // Commands
         public AsyncRelayCommand LoadDataCommand { get; }
         public RelayCommand<Movie> BuyTicketCommand { get; }

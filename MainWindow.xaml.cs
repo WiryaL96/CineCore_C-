@@ -13,6 +13,14 @@ namespace CineCore
             NavigationService.Instance.Initialize(this);
             // Set the Content property of MainWindow, using PageHost as the host
             NavigationService.Instance.NavigateTo(AppPage.Login);
+
+            // Pas maximize: kasih margin biar konten nggak ketutup border resize + ilangin sudut membulat
+            StateChanged += (_, _) =>
+            {
+                bool max = WindowState == WindowState.Maximized;
+                RootBorder.Margin = max ? new Thickness(7) : new Thickness(0);
+                RootBorder.CornerRadius = new CornerRadius(max ? 0 : 12);
+            };
         }
 
         private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)

@@ -7,6 +7,9 @@ namespace CineCore.Models
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;  // XXI, Premiere, IMAX
         public string Location { get; set; } = string.Empty;
+        // ── Dipisah dari Name/Location biar bisa dipakai buat filter type & tampil kota di kartu ──
+        public string Type { get; set; } = string.Empty;  // XXI / Premiere / IMAX
+        public string City { get; set; } = string.Empty;  // contoh: "Bandung"
         public int TotalRows { get; set; } = 5;
         public int TotalColumns { get; set; } = 8;
     }

@@ -12,3 +12,6 @@ obj/
 
 # Claude local settings
 .claude/settings.local.json
+
+# Catatan prompt pribadi (jangan di-push)
+prompt_for_claude_C#.txt

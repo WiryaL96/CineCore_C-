@@ -11,6 +11,7 @@
 	<ItemGroup>
 		<PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
 		<PackageReference Include="MySqlConnector" Version="2.5.0" />
+		<PackageReference Include="QuestPDF" Version="2026.7.2" />
 	</ItemGroup>
 
 </Project>
