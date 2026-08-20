@@ -556,12 +556,18 @@ namespace CineCore.Services
         // ──────────────────────────────────────────────────────────────────────
         // ADMIN: SALES & REPORT (semua agregat dihitung dari 1 query + 1 scalar)
         // ──────────────────────────────────────────────────────────────────────
-        public async Task<SalesReport> GetSalesReportAsync()
+        public async Task<SalesReport> GetSalesReportAsync(DateTime? from = null, DateTime? to = null)
         {
             await using var conn = GetConnection();
             await conn.OpenAsync();
 
-            const string sql = @"
+            // Bangun WHERE clause dinamis berdasarkan filter tanggal
+            var whereParts = new List<string>();
+            if (from.HasValue) whereParts.Add("b.created_at >= @From");
+            if (to.HasValue) whereParts.Add("b.created_at < @To");
+            var whereClause = whereParts.Count > 0 ? "WHERE " + string.Join(" AND ", whereParts) : "";
+
+            var sql = $@"
                 SELECT b.booking_reference, b.total_price, b.status, b.created_at,
                        u.name AS customer, m.title AS movie, c.name AS cinema,
                        bs.seats AS seats, bs.seat_count AS seat_count
@@ -576,27 +582,32 @@ namespace CineCore.Services
                            COUNT(*) AS seat_count
                     FROM booking_seats GROUP BY booking_id
                 ) bs ON bs.booking_id = b.id
+                {whereClause}
                 ORDER BY b.created_at DESC";
 
             var rows = new List<(decimal total, string status, DateTime created, string reference,
                 string customer, string movie, string cinema, string seats, int seatCount)>();
 
             await using (var cmd = new MySqlCommand(sql, conn))
-            await using (var reader = await cmd.ExecuteReaderAsync())
             {
-                while (await reader.ReadAsync())
+                if (from.HasValue) cmd.Parameters.AddWithValue("@From", from.Value);
+                if (to.HasValue) cmd.Parameters.AddWithValue("@To", to.Value.Date.AddDays(1)); // inklusif end date
+                await using (var reader = await cmd.ExecuteReaderAsync())
                 {
-                    rows.Add((
-                        Convert.ToDecimal(reader["total_price"]),
-                        reader["status"]?.ToString() ?? "",
-                        Convert.ToDateTime(reader["created_at"]),
-                        reader["booking_reference"]?.ToString() ?? "",
-                        reader["customer"]?.ToString() ?? "",
-                        reader["movie"]?.ToString() ?? "",
-                        reader["cinema"]?.ToString() ?? "",
-                        reader["seats"] == DBNull.Value ? "" : reader["seats"]?.ToString() ?? "",
-                        reader["seat_count"] == DBNull.Value ? 0 : Convert.ToInt32(reader["seat_count"])
-                    ));
+                    while (await reader.ReadAsync())
+                    {
+                        rows.Add((
+                            Convert.ToDecimal(reader["total_price"]),
+                            reader["status"]?.ToString() ?? "",
+                            Convert.ToDateTime(reader["created_at"]),
+                            reader["booking_reference"]?.ToString() ?? "",
+                            reader["customer"]?.ToString() ?? "",
+                            reader["movie"]?.ToString() ?? "",
+                            reader["cinema"]?.ToString() ?? "",
+                            reader["seats"] == DBNull.Value ? "" : reader["seats"]?.ToString() ?? "",
+                            reader["seat_count"] == DBNull.Value ? 0 : Convert.ToInt32(reader["seat_count"])
+                        ));
+                    }
                 }
             }
 
@@ -651,6 +662,15 @@ namespace CineCore.Services
                     Amount = r.total,
                     Status = r.status
                 }).ToList();
+
+            report.From = from;
+            report.To = to;
+            if (from.HasValue || to.HasValue)
+            {
+                var f = from?.ToString("dd MMM yyyy") ?? "...";
+                var t = to?.ToString("dd MMM yyyy") ?? "...";
+                report.PeriodLabel = $"{f}  —  {t}";
+            }
 
             return report;
         }

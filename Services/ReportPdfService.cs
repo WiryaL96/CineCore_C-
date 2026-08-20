@@ -3,6 +3,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 
@@ -16,17 +17,19 @@ namespace CineCore.Services
 
         private static string Rp(decimal v) => "Rp " + v.ToString("#,##0", Id);
 
-        public static void Generate(SalesReport report, string filePath)
+        private static void EnsureLicense()
         {
-            if (!_licensed)
-            {
-                QuestPDF.Settings.License = LicenseType.Community;
-                _licensed = true;
-            }
+            if (_licensed) return;
+            QuestPDF.Settings.License = LicenseType.Community;
+            _licensed = true;
+        }
 
+        private static Document BuildDocument(SalesReport report)
+        {
             var now = DateTime.Now;
+            var periodLabel = report.PeriodLabel ?? "All Time";
 
-            Document.Create(container =>
+            return Document.Create(container =>
             {
                 container.Page(page =>
                 {
@@ -34,14 +37,30 @@ namespace CineCore.Services
                     page.Margin(28);
                     page.DefaultTextStyle(t => t.FontSize(10).FontColor("#0f172a").FontFamily("Segoe UI"));
 
-                    page.Header().Element(h => ComposeHeader(h, now));
+                    page.Header().Element(h => ComposeHeader(h, now, periodLabel));
                     page.Content().PaddingVertical(10).Element(c => ComposeContent(c, report));
                     page.Footer().Element(f => ComposeFooter(f, now));
                 });
-            }).GeneratePdf(filePath);
+            });
         }
 
-        private static void ComposeHeader(IContainer container, DateTime now)
+        public static void Generate(SalesReport report, string filePath)
+        {
+            EnsureLicense();
+            BuildDocument(report).GeneratePdf(filePath);
+        }
+
+        public static List<byte[]> GeneratePreviewImages(SalesReport report, int dpi = 144)
+        {
+            EnsureLicense();
+            return new List<byte[]>(BuildDocument(report).GenerateImages(new ImageGenerationSettings
+            {
+                ImageFormat = ImageFormat.Png,
+                RasterDpi = dpi
+            }));
+        }
+
+        private static void ComposeHeader(IContainer container, DateTime now, string periodLabel)
         {
             container.Column(col =>
             {
@@ -62,7 +81,7 @@ namespace CineCore.Services
                     {
                         right.Item().AlignRight().Text($"Generated: {now.ToString("MMMM dd, yyyy", CultureInfo.InvariantCulture)}")
                             .FontSize(9).FontColor("#64748b");
-                        right.Item().AlignRight().Text("Scope: All Cities & Cinemas")
+                        right.Item().AlignRight().Text($"Period: {periodLabel}")
                             .FontSize(9).FontColor("#64748b");
                     });
                 });

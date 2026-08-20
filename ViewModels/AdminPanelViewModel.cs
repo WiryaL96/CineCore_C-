@@ -38,6 +38,9 @@ namespace CineCore.ViewModels
             CancelEditCommand = new RelayCommand(() => IsEditingMovie = false);
             ChoosePosterCommand = new RelayCommand(ChoosePoster);
             RefreshReportCommand = new AsyncRelayCommand(LoadReportAsync);
+            ApplyFilterCommand = new AsyncRelayCommand(ApplyFilterAsync);
+            ResetFilterCommand = new AsyncRelayCommand(ResetFilterAsync);
+            InitPreviewCommands();
 
             _ = LoadCatalogAsync();
         }
@@ -349,6 +352,132 @@ namespace CineCore.ViewModels
         public bool ReportEmpty => !ReportHasTransactions;
 
         public AsyncRelayCommand RefreshReportCommand { get; }
+        public AsyncRelayCommand ApplyFilterCommand { get; }
+        public AsyncRelayCommand ResetFilterCommand { get; }
+
+        // ── Filter: Tanggal (Date Range) ──
+        private DateTime? _filterDateFrom;
+        public DateTime? FilterDateFrom
+        {
+            get => _filterDateFrom;
+            set
+            {
+                if (SetProperty(ref _filterDateFrom, value))
+                {
+                    // Guard: kalau To < From, clear To
+                    if (_filterDateTo.HasValue && _filterDateFrom.HasValue && _filterDateTo < _filterDateFrom)
+                        FilterDateTo = null;
+                    OnPropertyChanged(nameof(FilterDateTo)); // refresh DisplayDateStart
+                }
+            }
+        }
+        private DateTime? _filterDateTo;
+        public DateTime? FilterDateTo
+        {
+            get => _filterDateTo;
+            set
+            {
+                if (SetProperty(ref _filterDateTo, value))
+                    OnPropertyChanged(nameof(FilterDateFrom)); // refresh DisplayDateEnd
+            }
+        }
+
+        private string _filterStatusText = string.Empty;
+        public string FilterStatusText { get => _filterStatusText; set { if (SetProperty(ref _filterStatusText, value)) OnPropertyChanged(nameof(HasFilterStatus)); } }
+        public bool HasFilterStatus => !string.IsNullOrEmpty(_filterStatusText);
+
+        private async Task ApplyFilterAsync()
+        {
+            IsBusy = true;
+            try
+            {
+                var from = _filterDateFrom;
+                var to = _filterDateTo;
+                var report = await Task.Run(() => _db.GetSalesReportAsync(from, to));
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    ApplyReport(report);
+                    FilterStatusText = report.PeriodLabel != "All Time"
+                        ? $"Filtered: {report.PeriodLabel}"
+                        : string.Empty;
+                });
+            }
+            catch (Exception ex) { Flash($"Error: {ex.Message}"); }
+            finally { IsBusy = false; }
+        }
+
+        private async Task ResetFilterAsync()
+        {
+            FilterDateFrom = null; FilterDateTo = null;
+            FilterStatusText = string.Empty;
+            await LoadReportAsync();
+        }
+
+        // ── PDF Preview Overlay ──
+        private bool _isPreviewVisible;
+        public bool IsPreviewVisible { get => _isPreviewVisible; set => SetProperty(ref _isPreviewVisible, value); }
+
+        public ObservableCollection<System.Windows.Media.Imaging.BitmapImage> PreviewPages { get; } = new();
+
+        private int _previewPageIndex;
+        public int PreviewPageIndex
+        {
+            get => _previewPageIndex;
+            set
+            {
+                if (SetProperty(ref _previewPageIndex, Math.Max(0, Math.Min(value, PreviewPages.Count - 1))))
+                {
+                    OnPropertyChanged(nameof(PreviewPageText));
+                    OnPropertyChanged(nameof(CurrentPreviewPage));
+                }
+            }
+        }
+        public string PreviewPageText => PreviewPages.Count > 0 ? $"Page {_previewPageIndex + 1} / {PreviewPages.Count}" : "";
+        public System.Windows.Media.Imaging.BitmapImage? CurrentPreviewPage =>
+            PreviewPages.Count > 0 && _previewPageIndex < PreviewPages.Count ? PreviewPages[_previewPageIndex] : null;
+
+        public AsyncRelayCommand ShowPreviewCommand { get; private set; } = null!;
+        public RelayCommand ClosePreviewCommand { get; private set; } = null!;
+        public RelayCommand PrevPageCommand { get; private set; } = null!;
+        public RelayCommand NextPageCommand { get; private set; } = null!;
+
+        private void InitPreviewCommands()
+        {
+            ShowPreviewCommand = new AsyncRelayCommand(ShowPreviewAsync);
+            ClosePreviewCommand = new RelayCommand(() => IsPreviewVisible = false);
+            PrevPageCommand = new RelayCommand(() => PreviewPageIndex--, () => _previewPageIndex > 0);
+            NextPageCommand = new RelayCommand(() => PreviewPageIndex++, () => _previewPageIndex < PreviewPages.Count - 1);
+        }
+
+        private async Task ShowPreviewAsync()
+        {
+            if (_report == null) return;
+            IsBusy = true;
+            try
+            {
+                var report = _report;
+                var images = await Task.Run(() => ReportPdfService.GeneratePreviewImages(report));
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    PreviewPages.Clear();
+                    foreach (var png in images)
+                    {
+                        var bmp = new System.Windows.Media.Imaging.BitmapImage();
+                        bmp.BeginInit();
+                        bmp.StreamSource = new System.IO.MemoryStream(png);
+                        bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                        bmp.EndInit();
+                        bmp.Freeze();
+                        PreviewPages.Add(bmp);
+                    }
+                    PreviewPageIndex = 0;
+                    OnPropertyChanged(nameof(PreviewPageText));
+                    IsPreviewVisible = true;
+                });
+            }
+            catch (Exception ex) { Flash($"Preview error: {ex.Message}"); }
+            finally { IsBusy = false; }
+        }
 
         private async Task LoadReportAsync()
         {

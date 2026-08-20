@@ -34,6 +34,7 @@ namespace CineCore.Views
             try
             {
                 ReportPdfService.Generate(vm.Report, dialog.FileName);
+                vm.IsPreviewVisible = false; // tutup preview overlay
                 if (MessageBox.Show("PDF berhasil dibuat. Buka sekarang?", "Export PDF",
                         MessageBoxButton.YesNo, MessageBoxImage.Information) == MessageBoxResult.Yes)
                     Process.Start(new ProcessStartInfo(dialog.FileName) { UseShellExecute = true });

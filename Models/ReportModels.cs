@@ -6,6 +6,11 @@ namespace CineCore.Models
     // Semua angka & list yang dibutuhin halaman Sales & Report + Export PDF.
     public class SalesReport
     {
+        // Filter range (null = semua data)
+        public DateTime? From { get; set; }
+        public DateTime? To { get; set; }
+        public string PeriodLabel { get; set; } = "All Time";
+
         public decimal TotalRevenue { get; set; }
         public int TotalTickets { get; set; }
         public int TotalBookings { get; set; }        // paid bookings

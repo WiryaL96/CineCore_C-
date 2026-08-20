@@ -23,6 +23,6 @@ namespace CineCore.Services
         Task<int> AddShowtimesBulkAsync(IEnumerable<(int MovieId, int CinemaId, DateTime StartTime, decimal Price)> items);
         Task<bool> DeleteShowtimeAsync(int showtimeId);
         Task<List<Showtime>> GetAllShowtimesAsync();
-        Task<SalesReport> GetSalesReportAsync();
+        Task<SalesReport> GetSalesReportAsync(DateTime? from = null, DateTime? to = null);
     }
 }
