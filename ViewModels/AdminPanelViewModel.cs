@@ -470,8 +470,12 @@ namespace CineCore.ViewModels
                         bmp.Freeze();
                         PreviewPages.Add(bmp);
                     }
-                    PreviewPageIndex = 0;
+                    // Force-notify: index tetap 0 di pembukaan pertama → SetProperty(0→0)=false,
+                    // jadi CurrentPreviewPage nggak ke-refresh dan Image blank. Notify manual.
+                    _previewPageIndex = 0;
+                    OnPropertyChanged(nameof(PreviewPageIndex));
                     OnPropertyChanged(nameof(PreviewPageText));
+                    OnPropertyChanged(nameof(CurrentPreviewPage));
                     IsPreviewVisible = true;
                 });
             }

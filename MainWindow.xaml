@@ -61,10 +61,10 @@
                                FontFamily="Segoe UI"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Style="{StaticResource TitleBarButton}" Content="—" Click="Minimize_Click"/>
-                    <Button Style="{StaticResource TitleBarButton}" Content="□" Click="Maximize_Click"/>
+                    <Button Style="{StaticResource TitleBarButton}" Content="—" Click="Minimize_Click" ToolTip="Minimize"/>
+                    <Button x:Name="MaxRestoreBtn" Style="{StaticResource TitleBarButton}" Content="□" Click="Maximize_Click" ToolTip="Maximize"/>
                     <Button x:Name="CloseBtn" Style="{StaticResource TitleBarButton}" Content="✕"
-                            Click="Close_Click">
+                            Click="Close_Click" ToolTip="Close">
                         <Button.Resources>
                             <Style TargetType="Border"><Setter Property="CornerRadius" Value="0,8,0,0"/></Style>
                         </Button.Resources>

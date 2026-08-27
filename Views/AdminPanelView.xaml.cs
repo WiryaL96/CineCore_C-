@@ -1,8 +1,8 @@
 using CineCore.Services;
 using CineCore.ViewModels;
-using Microsoft.Win32;
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -24,20 +24,18 @@ namespace CineCore.Views
                 return;
             }
 
-            var dialog = new SaveFileDialog
-            {
-                FileName = "cinecore_sales_report.pdf",
-                Filter = "PDF File|*.pdf"
-            };
-            if (dialog.ShowDialog() != true) return;
-
             try
             {
-                ReportPdfService.Generate(vm.Report, dialog.FileName);
+                // Langsung download ke folder Downloads user (tanpa SaveFileDialog).
+                var downloads = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+                Directory.CreateDirectory(downloads); // aman kalau sudah ada
+                var path = Path.Combine(downloads,
+                    $"cinecore_sales_report_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
+
+                ReportPdfService.Generate(vm.Report, path);
                 vm.IsPreviewVisible = false; // tutup preview overlay
-                if (MessageBox.Show("PDF berhasil dibuat. Buka sekarang?", "Export PDF",
-                        MessageBoxButton.YesNo, MessageBoxImage.Information) == MessageBoxResult.Yes)
-                    Process.Start(new ProcessStartInfo(dialog.FileName) { UseShellExecute = true });
+                Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); // buka file
             }
             catch (Exception ex)
             {

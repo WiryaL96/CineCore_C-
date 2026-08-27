@@ -20,6 +20,8 @@ namespace CineCore
                 bool max = WindowState == WindowState.Maximized;
                 RootBorder.Margin = max ? new Thickness(7) : new Thickness(0);
                 RootBorder.CornerRadius = new CornerRadius(max ? 0 : 12);
+                MaxRestoreBtn.Content = max ? "❐" : "□";          // toggle icon maximize/restore
+                MaxRestoreBtn.ToolTip = max ? "Restore" : "Maximize";
             };
         }
 
