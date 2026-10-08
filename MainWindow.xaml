@@ -10,29 +10,55 @@
         ResizeMode="CanResize"
         AllowsTransparency="True">
 
-    <!-- Bikin window borderless tetap bisa di-resize (drag pinggir) + maximize rapi -->
+    <!-- Bikin window borderless tetap bisa di-resize (drag pinggir) + maximize rapi + Aero snap -->
     <shell:WindowChrome.WindowChrome>
-        <shell:WindowChrome CaptionHeight="0" ResizeBorderThickness="7" CornerRadius="0" GlassFrameThickness="0"/>
+        <shell:WindowChrome CaptionHeight="36" ResizeBorderThickness="8" CornerRadius="0" GlassFrameThickness="0" UseAeroCaptionButtons="False"/>
     </shell:WindowChrome.WindowChrome>
 
     <Window.Resources>
         <Style x:Key="TitleBarButton" TargetType="Button">
-            <Setter Property="Width" Value="40"/>
-            <Setter Property="Height" Value="30"/>
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="36"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="#8B8FA8"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="FontSize" Value="12"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#1A2030"/>
+                                <Setter TargetName="bd" Property="Background" Value="#1E2538"/>
+                                <Setter Property="Foreground" Value="#F0F2FF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#2A334D"/>
+                                <Setter Property="Foreground" Value="#F0F2FF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="TitleBarCloseButton" TargetType="Button" BasedOn="{StaticResource TitleBarButton}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="0,11,0,0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#E81123"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#C42B1C"/>
+                                <Setter Property="Foreground" Value="White"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -48,26 +74,43 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Custom Title Bar -->
-            <Grid Grid.Row="0" Background="#0D0F1E" MouseDown="TitleBar_MouseDown">
+            <!-- Custom Title Bar (area caption OS: bisa drag, double-click, Win+Arrow snap) -->
+            <Grid Grid.Row="0" Background="#0D0F1E"
+                  MouseLeftButtonDown="TitleBar_MouseLeftButtonDown"
+                  MouseRightButtonUp="TitleBar_MouseRightButtonUp">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0">
-                    <Ellipse Width="8" Height="8" Fill="#007AFF" Margin="0,0,6,0"/>
+                    <Ellipse Width="8" Height="8" Fill="#007AFF" Margin="0,0,8,0"/>
                     <TextBlock Text="CINECORE" Foreground="#F0F2FF" FontSize="11"
                                FontWeight="Bold" VerticalAlignment="Center"
                                FontFamily="Segoe UI"/>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Style="{StaticResource TitleBarButton}" Content="—" Click="Minimize_Click" ToolTip="Minimize"/>
-                    <Button x:Name="MaxRestoreBtn" Style="{StaticResource TitleBarButton}" Content="□" Click="Maximize_Click" ToolTip="Maximize"/>
-                    <Button x:Name="CloseBtn" Style="{StaticResource TitleBarButton}" Content="✕"
+                <!-- Tombol harus bisa diklik di atas caption WindowChrome -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource TitleBarButton}" Click="Minimize_Click" ToolTip="Minimize">
+                        <Path Data="M0,0 H10" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="1.2" Width="10" Height="10" Stretch="None"
+                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Button>
+                    <Button x:Name="MaxRestoreBtn" Style="{StaticResource TitleBarButton}" Click="Maximize_Click" ToolTip="Maximize">
+                        <Grid Width="10" Height="10">
+                            <Path x:Name="IconMaximize" Data="M0,0 H10 V10 H0 Z"
+                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                  StrokeThickness="1.2" Visibility="Visible"/>
+                            <Path x:Name="IconRestore" Data="M2,0 H10 V8 H2 Z M0,2 V10 H8"
+                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                  StrokeThickness="1.2" Visibility="Collapsed"/>
+                        </Grid>
+                    </Button>
+                    <Button x:Name="CloseBtn" Style="{StaticResource TitleBarCloseButton}"
                             Click="Close_Click" ToolTip="Close">
-                        <Button.Resources>
-                            <Style TargetType="Border"><Setter Property="CornerRadius" Value="0,8,0,0"/></Style>
-                        </Button.Resources>
+                        <Path Data="M0,0 L10,10 M10,0 L0,10"
+                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="1.2" Width="10" Height="10"/>
                     </Button>
                 </StackPanel>
             </Grid>

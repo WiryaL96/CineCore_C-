@@ -65,6 +65,9 @@ namespace CineCore.ViewModels
                 }
                 SessionService.CurrentUser = user;
 
+                // Catat siapa yang login (diabaikan kalau tabel activity_logs belum ada)
+                try { await _db.LogActivityAsync(user.Id, "LOGIN", $"{user.FullName} ({user.Email}) logged in."); } catch { }
+
                 // Remember Me
                 if (RememberMe)
                     SessionService.SaveRememberedEmail(Email.Trim());

@@ -24,5 +24,7 @@ namespace CineCore.Services
         Task<bool> DeleteShowtimeAsync(int showtimeId);
         Task<List<Showtime>> GetAllShowtimesAsync();
         Task<SalesReport> GetSalesReportAsync(DateTime? from = null, DateTime? to = null);
+        Task LogActivityAsync(int? userId, string activityType, string description, string? reference = null);
+        Task<List<ActivityLog>> GetActivityLogsAsync(int limit = 200);
     }
 }

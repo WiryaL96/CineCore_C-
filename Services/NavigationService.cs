@@ -9,9 +9,9 @@ namespace CineCore.Services
         private static NavigationService? _instance;
         public static NavigationService Instance => _instance ??= new NavigationService();
 
-        private ContentControl? _host;
+        private ContentPresenter? _host;
 
-        public void Initialize(ContentControl host)
+        public void Initialize(ContentPresenter host)
         {
             _host = host;
         }

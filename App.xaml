@@ -181,6 +181,118 @@
                 <Setter Property="BorderThickness" Value="1"/>
                 <Setter Property="Height" Value="44"/>
                 <Setter Property="Padding" Value="12,0"/>
+                <Setter Property="FontFamily" Value="{StaticResource PrimaryFont}"/>
+                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="MaxDropDownHeight" Value="220"/>
+                <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+                <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+                <Setter Property="ItemContainerStyle">
+                    <Setter.Value>
+                        <Style TargetType="ComboBoxItem">
+                            <Setter Property="Foreground" Value="#CBD5E1"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Padding" Value="12,9"/>
+                            <Setter Property="FontSize" Value="13"/>
+                            <Setter Property="FontFamily" Value="Segoe UI"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ComboBoxItem">
+                                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsHighlighted" Value="True">
+                                                <Setter TargetName="bd" Property="Background" Value="#2563EB"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="bd" Property="Background" Value="#1E293B"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </Trigger>
+                                            <MultiTrigger>
+                                                <MultiTrigger.Conditions>
+                                                    <Condition Property="IsSelected" Value="True"/>
+                                                    <Condition Property="IsHighlighted" Value="True"/>
+                                                </MultiTrigger.Conditions>
+                                                <Setter TargetName="bd" Property="Background" Value="#2563EB"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </MultiTrigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Setter.Value>
+                </Setter>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ComboBox">
+                            <Grid>
+                                <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="10" Padding="{TemplateBinding Padding}"
+                                        SnapsToDevicePixels="True">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ContentPresenter x:Name="ContentSite" Grid.Column="0"
+                                                          Content="{TemplateBinding SelectionBoxItem}"
+                                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                          ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                                          VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                                        <TextBox x:Name="PART_EditableTextBox" Grid.Column="0"
+                                                 Background="Transparent" Foreground="{TemplateBinding Foreground}"
+                                                 BorderThickness="0" VerticalAlignment="Center"
+                                                 Visibility="Hidden" IsReadOnly="True" Focusable="False"/>
+                                        <Path Grid.Column="1" x:Name="Arrow" Data="M0,0 L4,4 L8,0"
+                                              Stroke="#8B8FA8" StrokeThickness="1.6" Fill="Transparent"
+                                              Width="8" Height="5" Stretch="Uniform"
+                                              VerticalAlignment="Center" HorizontalAlignment="Center" Margin="8,0,2,0"/>
+                                    </Grid>
+                                </Border>
+                                <ToggleButton Background="Transparent" BorderThickness="0" Focusable="False"
+                                              IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                              ClickMode="Press">
+                                    <ToggleButton.Template>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border Background="Transparent"/>
+                                        </ControlTemplate>
+                                    </ToggleButton.Template>
+                                </ToggleButton>
+                                <Popup x:Name="Popup" Placement="Bottom"
+                                       IsOpen="{TemplateBinding IsDropDownOpen}"
+                                       AllowsTransparency="True" Focusable="False"
+                                       PopupAnimation="Slide" VerticalOffset="4">
+                                    <Border Background="#12141F" BorderBrush="#252736" BorderThickness="1"
+                                            CornerRadius="10" Padding="4"
+                                            MinWidth="{TemplateBinding ActualWidth}"
+                                            MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                            SnapsToDevicePixels="True">
+                                        <ScrollViewer SnapsToDevicePixels="True">
+                                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                        </ScrollViewer>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="BorderBrush" Value="#3B4260"/>
+                                </Trigger>
+                                <Trigger Property="IsDropDownOpen" Value="True">
+                                    <Setter TargetName="bd" Property="BorderBrush" Value="#007AFF"/>
+                                    <Setter TargetName="Arrow" Property="Stroke" Value="#007AFF"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="bd" Property="Opacity" Value="0.5"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
             </Style>
 
             <Style x:Key="LabelText" TargetType="TextBlock">

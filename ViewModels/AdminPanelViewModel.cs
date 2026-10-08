@@ -28,8 +28,15 @@ namespace CineCore.ViewModels
 
             ShowMoviesCommand = new RelayCommand(() => ActiveSection = "movies");
             ShowReportCommand = new RelayCommand(() => { ActiveSection = "report"; _ = LoadReportAsync(); });
+            ShowActivityCommand = new RelayCommand(() => { ActiveSection = "activity"; _ = LoadActivityLogsAsync(); });
             GoToDashboardCommand = new RelayCommand(() => NavigationService.Instance.NavigateTo(AppPage.Dashboard));
-            LogoutCommand = new RelayCommand(() => { SessionService.Logout(); NavigationService.Instance.NavigateTo(AppPage.Login); });
+            LogoutCommand = new RelayCommand(() =>
+            {
+                var u = SessionService.CurrentUser;
+                if (u != null) _ = _db.LogActivityAsync(u.Id, "LOGOUT", $"{u.FullName} logged out.");
+                SessionService.Logout();
+                NavigationService.Instance.NavigateTo(AppPage.Login);
+            });
 
             AddNewMovieCommand = new RelayCommand(OpenCreateForm);
             EditMovieCommand = new RelayCommand(p => OpenEditForm(p as Movie), p => p is Movie);
@@ -40,6 +47,7 @@ namespace CineCore.ViewModels
             RefreshReportCommand = new AsyncRelayCommand(LoadReportAsync);
             ApplyFilterCommand = new AsyncRelayCommand(ApplyFilterAsync);
             ResetFilterCommand = new AsyncRelayCommand(ResetFilterAsync);
+            RefreshActivityCommand = new AsyncRelayCommand(LoadActivityLogsAsync);
             InitPreviewCommands();
 
             _ = LoadCatalogAsync();
@@ -50,10 +58,11 @@ namespace CineCore.ViewModels
         public string ActiveSection
         {
             get => _activeSection;
-            set { if (SetProperty(ref _activeSection, value)) { OnPropertyChanged(nameof(IsMoviesSection)); OnPropertyChanged(nameof(IsReportSection)); } }
+            set { if (SetProperty(ref _activeSection, value)) { OnPropertyChanged(nameof(IsMoviesSection)); OnPropertyChanged(nameof(IsReportSection)); OnPropertyChanged(nameof(IsActivitySection)); } }
         }
         public bool IsMoviesSection => _activeSection == "movies";
         public bool IsReportSection => _activeSection == "report";
+        public bool IsActivitySection => _activeSection == "activity";
 
         public string CurrentUserName => SessionService.CurrentUser?.FullName ?? "Admin";
         public string CurrentUserEmail => SessionService.CurrentUser?.Email ?? "";
@@ -80,6 +89,8 @@ namespace CineCore.ViewModels
 
         public RelayCommand ShowMoviesCommand { get; }
         public RelayCommand ShowReportCommand { get; }
+        public RelayCommand ShowActivityCommand { get; }
+        public AsyncRelayCommand RefreshActivityCommand { get; }
         public RelayCommand GoToDashboardCommand { get; }
         public RelayCommand LogoutCommand { get; }
 
@@ -413,6 +424,30 @@ namespace CineCore.ViewModels
             await LoadReportAsync();
         }
 
+        // ════════════════════ LOG ACTIVITIES ════════════════════
+        // Siapa yang login/register + siapa yang beli tiket apa.
+        public ObservableCollection<ActivityLogRow> ActivityRows { get; } = new();
+        public bool ActivityEmpty => ActivityRows.Count == 0;
+        public string ActivityCountText => $"{ActivityRows.Count} activities";
+
+        private async Task LoadActivityLogsAsync()
+        {
+            IsBusy = true;
+            try
+            {
+                var logs = await Task.Run(() => _db.GetActivityLogsAsync(200));
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    ActivityRows.Clear();
+                    foreach (var log in logs) ActivityRows.Add(new ActivityLogRow(log));
+                    OnPropertyChanged(nameof(ActivityEmpty));
+                    OnPropertyChanged(nameof(ActivityCountText));
+                });
+            }
+            catch (Exception ex) { Flash($"Error: {ex.Message}"); }
+            finally { IsBusy = false; }
+        }
+
         // ── PDF Preview Overlay ──
         private bool _isPreviewVisible;
         public bool IsPreviewVisible { get => _isPreviewVisible; set => SetProperty(ref _isPreviewVisible, value); }
@@ -575,6 +610,39 @@ namespace CineCore.ViewModels
         public string RevenueText { get; }
         public double Value { get; }
         public double Max { get; }
+    }
+
+    public class ActivityLogRow
+    {
+        public ActivityLogRow(ActivityLog log)
+        {
+            TimeText = log.CreatedAt.ToString("dd MMM yyyy, HH:mm", CultureInfo.InvariantCulture);
+            User = string.IsNullOrWhiteSpace(log.UserName) ? "(deleted user)" : log.UserName;
+            Email = log.UserEmail;
+            TypeUpper = (log.ActivityType ?? "").ToUpperInvariant();
+            Detail = log.Description;
+            Reference = log.Reference;
+            HasReference = !string.IsNullOrWhiteSpace(log.Reference);
+
+            // Warna badge per jenis aktivitas
+            (BadgeBackground, BadgeForeground) = TypeUpper switch
+            {
+                "LOGIN"    => ("#1A3B82F6", "#60A5FA"),
+                "REGISTER" => ("#1A9333EA", "#C084FC"),
+                "PURCHASE" => ("#1A10B981", "#34D399"),
+                "LOGOUT"   => ("#80334155", "#94A3B8"),
+                _          => ("#1A3B82F6", "#60A5FA"),
+            };
+        }
+        public string TimeText { get; }
+        public string User { get; }
+        public string Email { get; }
+        public string TypeUpper { get; }
+        public string Detail { get; }
+        public string Reference { get; }
+        public bool HasReference { get; }
+        public string BadgeBackground { get; }
+        public string BadgeForeground { get; }
     }
 
     public class TransactionRow

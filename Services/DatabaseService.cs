@@ -71,6 +71,10 @@ namespace CineCore.Services
             cmd.Parameters.AddWithValue("@Hash", passwordHash);
 
             await cmd.ExecuteNonQueryAsync();
+            var newId = (int)cmd.LastInsertedId;
+
+            // Catat aktivitas REGISTER (diabaikan kalau tabel activity_logs belum ada)
+            await LogActivityAsync(newId, "REGISTER", $"{fullName} ({email}) registered a new account.");
             return true;
         }
 
@@ -333,6 +337,35 @@ namespace CineCore.Services
                 }
 
                 await transaction.CommitAsync();
+
+                // Ambil judul film + bioskop buat deskripsi log yang enak dibaca
+                var movieTitle = "";
+                var cinemaName = "";
+                try
+                {
+                    const string infoSql = @"SELECT m.title, c.name
+                                             FROM showtimes s
+                                             JOIN movies m ON m.id = s.movie_id
+                                             JOIN cinemas c ON c.id = s.cinema_id
+                                             WHERE s.id = @Sid";
+                    await using var infoCmd = new MySqlCommand(infoSql, conn);
+                    infoCmd.Parameters.AddWithValue("@Sid", showtimeId);
+                    await using var infoReader = await infoCmd.ExecuteReaderAsync();
+                    if (await infoReader.ReadAsync())
+                    {
+                        movieTitle = infoReader.IsDBNull(0) ? "" : infoReader.GetString(0);
+                        cinemaName = infoReader.IsDBNull(1) ? "" : infoReader.GetString(1);
+                    }
+                }
+                catch { /* info tambahan saja, jangan gagalkan booking */ }
+
+                // Catat aktivitas PURCHASE : siapa beli tiket apa (diabaikan kalau tabel belum ada)
+                var desc = $"Bought {seats.Count} ticket(s) ({string.Join(", ", seats)})" +
+                           (string.IsNullOrEmpty(movieTitle) ? "" : $" for '{movieTitle}'") +
+                           (string.IsNullOrEmpty(cinemaName) ? "" : $" @ {cinemaName}") +
+                           $" — Rp {total:#,##0} via {paymentMethod}.";
+                await LogActivityAsync(userId, "PURCHASE", desc, code);
+
                 return (true, code);
             }
             catch
@@ -673,6 +706,66 @@ namespace CineCore.Services
             }
 
             return report;
+        }
+
+        // ──────────────────────────────────────────────────────────────────────
+        // ADMIN: ACTIVITY LOGS (tabel activity_logs — lihat UntukDatabase.sql)
+        // Logging TIDAK BOLEH bikin app crash: kalau tabel belum dibuat user
+        // (error 1146) atau DB offline, cukup diabaikan.
+        // ──────────────────────────────────────────────────────────────────────
+        public async Task LogActivityAsync(int? userId, string activityType, string description, string? reference = null)
+        {
+            try
+            {
+                await using var conn = GetConnection();
+                await conn.OpenAsync();
+                const string sql = @"INSERT INTO activity_logs (user_id, activity_type, description, reference, created_at)
+                                     VALUES (@Uid, @Type, @Desc, @Ref, NOW())";
+                await using var cmd = new MySqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@Uid", (object?)userId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Type", activityType);
+                cmd.Parameters.AddWithValue("@Desc", description);
+                cmd.Parameters.AddWithValue("@Ref", (object?)reference ?? DBNull.Value);
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch { /* abaikan: tabel belum ada / DB offline */ }
+        }
+
+        public async Task<List<ActivityLog>> GetActivityLogsAsync(int limit = 200)
+        {
+            var list = new List<ActivityLog>();
+            try
+            {
+                await using var conn = GetConnection();
+                await conn.OpenAsync();
+                const string sql = @"
+                    SELECT a.id, a.user_id,
+                           COALESCE(u.name, '') AS user_name, COALESCE(u.email, '') AS user_email,
+                           a.activity_type, a.description, COALESCE(a.reference, '') AS reference, a.created_at
+                    FROM activity_logs a
+                    LEFT JOIN users u ON u.id = a.user_id
+                    ORDER BY a.created_at DESC
+                    LIMIT @Limit";
+                await using var cmd = new MySqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@Limit", limit);
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    list.Add(new ActivityLog
+                    {
+                        Id = reader.GetInt32(0),
+                        UserId = reader.IsDBNull(1) ? null : reader.GetInt32(1),
+                        UserName = reader.GetString(2),
+                        UserEmail = reader.GetString(3),
+                        ActivityType = reader.IsDBNull(4) ? "" : reader.GetString(4),
+                        Description = reader.IsDBNull(5) ? "" : reader.GetString(5),
+                        Reference = reader.GetString(6),
+                        CreatedAt = reader.GetDateTime(7),
+                    });
+                }
+            }
+            catch { /* tabel belum ada → tampilkan kosong + hint di UI */ }
+            return list;
         }
 
     }

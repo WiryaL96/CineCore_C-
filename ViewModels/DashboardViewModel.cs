@@ -56,6 +56,8 @@ namespace CineCore.ViewModels
 
             LogoutCommand = new RelayCommand(() =>
             {
+                var u = SessionService.CurrentUser;
+                if (u != null) _ = _db.LogActivityAsync(u.Id, "LOGOUT", $"{u.FullName} logged out.");
                 SessionService.Logout();
                 NavigationService.Instance.NavigateTo(AppPage.Login);
             });
